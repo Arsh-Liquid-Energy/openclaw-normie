@@ -23,6 +23,7 @@
   "files": [
     "CHANGELOG.md",
     "LICENSE",
+    "install.sh",
     "openclaw.mjs",
     "README-header.png",
     "README.md",

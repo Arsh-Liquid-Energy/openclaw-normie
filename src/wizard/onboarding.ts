@@ -26,6 +26,30 @@ async function requireRiskAcknowledgement(params: {
     return;
   }
 
+  // Quickstart: shorter, consumer-friendly security notice
+  if (params.opts.flow === "quickstart") {
+    await params.prompter.note(
+      [
+        "Heads up — OpenClaw is an AI agent that can take real actions on your",
+        "computer and messaging apps. It’s powerful, but that means you should",
+        "only give it access to things you’re comfortable with.",
+        "",
+        "We’ve set safe defaults, but keep an eye on what it does at first.",
+      ].join("\n"),
+      "Security",
+    );
+
+    const ok = await params.prompter.confirm({
+      message: "I understand. Let’s go.",
+      initialValue: true,
+    });
+    if (!ok) {
+      throw new WizardCancelledError("risk not accepted");
+    }
+    return;
+  }
+
+  // Advanced/manual: full security warning
   await params.prompter.note(
     [
       "Security warning — please read.",
@@ -353,6 +377,7 @@ export async function runOnboardingWizard(
       prompter,
       store: authStore,
       includeSkip: true,
+      quickstart: flow === "quickstart",
     }));
 
   if (authChoice === "custom-api-key") {
@@ -409,6 +434,7 @@ export async function runOnboardingWizard(
   nextConfig = gateway.nextConfig;
   const settings = gateway.settings;
 
+  let quickstartChannel: string | null = null;
   if (opts.skipChannels ?? opts.skipProviders) {
     await prompter.note("Skipping channel setup.", "Channels");
   } else {
@@ -426,6 +452,11 @@ export async function runOnboardingWizard(
       skipDmPolicyPrompt: flow === "quickstart",
       skipConfirm: flow === "quickstart",
       quickstartDefaults: flow === "quickstart",
+      onSelection: (selected) => {
+        if (flow === "quickstart" && selected.length > 0) {
+          quickstartChannel = selected[0];
+        }
+      },
     });
   }
 
@@ -436,16 +467,21 @@ export async function runOnboardingWizard(
     skipBootstrap: Boolean(nextConfig.agents?.defaults?.skipBootstrap),
   });
 
-  if (opts.skipSkills) {
+  if (flow === "quickstart") {
+    const { applyDefaultStarterSkills } = await import("../commands/onboard-default-skills.js");
+    nextConfig = applyDefaultStarterSkills(nextConfig);
+  } else if (opts.skipSkills) {
     await prompter.note("Skipping skills setup.", "Skills");
   } else {
     const { setupSkills } = await import("../commands/onboard-skills.js");
     nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
   }
 
-  // Setup hooks (session memory on /new)
-  const { setupInternalHooks } = await import("../commands/onboard-hooks.js");
-  nextConfig = await setupInternalHooks(nextConfig, runtime, prompter);
+  if (flow !== "quickstart") {
+    // Setup hooks (session memory on /new)
+    const { setupInternalHooks } = await import("../commands/onboard-hooks.js");
+    nextConfig = await setupInternalHooks(nextConfig, runtime, prompter);
+  }
 
   nextConfig = onboardHelpers.applyWizardMetadata(nextConfig, { command: "onboard", mode });
   await writeConfigFile(nextConfig);
@@ -460,6 +496,7 @@ export async function runOnboardingWizard(
     settings,
     prompter,
     runtime,
+    quickstartChannel,
   });
   if (launchedTui) {
     return;

@@ -102,6 +102,11 @@ export async function prependSystemEvents(params: {
     if (summary.length > 0) {
       systemLines.unshift(...summary);
     }
+    // Quickstart starter-set: welcome instruction on first contact.
+    if (params.cfg.skills?.starterSet === true) {
+      const { WELCOME_SYSTEM_INSTRUCTION } = await import("../../commands/onboard-welcome.js");
+      systemLines.push(WELCOME_SYSTEM_INSTRUCTION);
+    }
   }
   if (systemLines.length === 0) {
     return params.prefixedBodyBase;

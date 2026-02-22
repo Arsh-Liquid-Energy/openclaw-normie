@@ -269,6 +269,37 @@ export const whatsappOnboardingAdapter: ChannelOnboardingAdapter = {
     shouldPromptAccountIds,
     forceAllowFrom,
   }) => {
+    // Simplified quickstart: just do QR linking and enable the channel.
+    // Skips account selection, phone mode, DM policy, and allowFrom prompts.
+    if (options?.quickstartDefaults) {
+      const accountId = resolveDefaultWhatsAppAccountId(cfg);
+      const linked = await detectWhatsAppLinked(cfg, accountId);
+
+      if (!linked) {
+        await prompter.note(
+          [
+            "Scan the QR code with WhatsApp on your phone.",
+            "Open WhatsApp → Settings → Linked Devices → Link a Device.",
+          ].join("\n"),
+          "WhatsApp linking",
+        );
+        try {
+          await loginWeb(false, undefined, runtime, accountId);
+        } catch (err) {
+          runtime.error(`WhatsApp login failed: ${String(err)}`);
+          await prompter.note(
+            `Run \`${formatCliCommand("openclaw channels login")}\` later to try again.`,
+            "WhatsApp",
+          );
+        }
+      } else {
+        await prompter.note("WhatsApp already linked.", "WhatsApp");
+      }
+
+      let next = setWhatsAppDmPolicy(cfg, "open");
+      return { cfg: next, accountId };
+    }
+
     const overrideId = accountOverrides.whatsapp?.trim();
     let accountId = overrideId
       ? normalizeAccountId(overrideId)

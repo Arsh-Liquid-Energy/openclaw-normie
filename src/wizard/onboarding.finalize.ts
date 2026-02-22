@@ -42,6 +42,8 @@ type FinalizeOnboardingOptions = {
   settings: GatewayWizardSettings;
   prompter: WizardPrompter;
   runtime: RuntimeEnv;
+  /** Channel selected during quickstart onboarding (e.g. "telegram", "whatsapp"). */
+  quickstartChannel?: string | null;
 };
 
 export async function finalizeOnboardingWizard(
@@ -222,6 +224,38 @@ export async function finalizeOnboardingWizard(
       );
     }
   }
+
+  // ── Quickstart: simplified finalization ──────────────────────────────
+  // Welcome message is handled reactively: the first time a user messages
+  // the bot, prependSystemEvents() injects a welcome instruction so the AI
+  // includes a friendly greeting in its first response.
+  if (flow === "quickstart") {
+    const qsChannel = options.quickstartChannel ?? null;
+    const channelLabel =
+      qsChannel === "telegram" ? "Telegram" : qsChannel === "whatsapp" ? "WhatsApp" : null;
+
+    const channelHint = channelLabel
+      ? `Message your bot on ${channelLabel} to get started!`
+      : `Add a channel later with ${formatCliCommand("openclaw channels add")}.`;
+
+    await prompter.note(
+      [
+        "You're all set! Your AI agent is running.",
+        channelHint,
+        "",
+        `To chat here in the terminal:  ${formatCliCommand("openclaw tui")}`,
+        `To stop the agent:             ${formatCliCommand("openclaw gateway stop")}`,
+        `To reconfigure:                ${formatCliCommand("openclaw configure")}`,
+      ].join("\n"),
+      "Setup complete",
+    );
+
+    await setupOnboardingShellCompletion({ flow, prompter });
+    await prompter.outro("Onboarding complete.");
+    return { launchedTui: false };
+  }
+
+  // ── Advanced / manual flow: full finalization ──────────────────────
 
   const controlUiEnabled =
     nextConfig.gateway?.controlUi?.enabled ?? baseConfig.gateway?.controlUi?.enabled ?? true;
@@ -446,9 +480,9 @@ export async function finalizeOnboardingWizard(
           "Docs: https://docs.openclaw.ai/tools/web",
         ].join("\n")
       : [
-          "If you want your agent to be able to search the web, you’ll need an API key.",
+          "If you want your agent to be able to search the web, you'll need an API key.",
           "",
-          "OpenClaw uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won’t work.",
+          "OpenClaw uses Brave Search for the `web_search` tool. Without a Brave Search API key, web search won't work.",
           "",
           "Set it up interactively:",
           `- Run: ${formatCliCommand("openclaw configure --section web")}`,

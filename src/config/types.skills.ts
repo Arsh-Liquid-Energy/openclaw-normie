@@ -38,6 +38,8 @@ export type SkillsLimitsConfig = {
 export type SkillsConfig = {
   /** Optional bundled-skill allowlist (only affects bundled skills). */
   allowBundled?: string[];
+  /** When true, auto-include starter skills whose runtime requirements are met. */
+  starterSet?: boolean;
   load?: SkillsLoadConfig;
   install?: SkillsInstallConfig;
   limits?: SkillsLimitsConfig;

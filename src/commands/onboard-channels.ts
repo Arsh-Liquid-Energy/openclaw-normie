@@ -612,18 +612,26 @@ export async function setupChannels(
   };
 
   if (options?.quickstartDefaults) {
-    const { entries } = getChannelEntries();
     const choice = (await prompter.select({
-      message: "Select channel (QuickStart)",
+      message: "How do you want to talk to your AI?",
       options: [
-        ...buildSelectionOptions(entries),
+        {
+          value: "telegram",
+          label: "Telegram",
+          hint: "recommended — easiest setup",
+        },
+        {
+          value: "whatsapp",
+          label: "WhatsApp",
+          hint: "uses QR code to link",
+        },
         {
           value: "__skip__",
           label: "Skip for now",
-          hint: `You can add channels later via \`${formatCliCommand("openclaw channels add")}\``,
+          hint: `add a channel later with ${formatCliCommand("openclaw channels add")}`,
         },
       ],
-      initialValue: quickstartDefault,
+      initialValue: "telegram",
     })) as ChannelChoice | "__skip__";
     if (choice !== "__skip__") {
       await handleChannelChoice(choice);

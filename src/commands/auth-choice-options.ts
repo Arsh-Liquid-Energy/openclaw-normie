@@ -174,6 +174,13 @@ const AUTH_CHOICE_GROUP_DEFS: {
   },
 ];
 
+/** Auth provider groups shown in quickstart mode (consumer-friendly subset). */
+export const QUICKSTART_AUTH_GROUP_IDS: ReadonlySet<AuthChoiceGroupId> = new Set([
+  "openai",
+  "anthropic",
+  "google",
+]);
+
 const BASE_AUTH_CHOICE_OPTIONS: ReadonlyArray<AuthChoiceOption> = [
   {
     value: "token",

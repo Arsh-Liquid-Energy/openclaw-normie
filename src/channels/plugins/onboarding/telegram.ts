@@ -197,10 +197,45 @@ export const telegramOnboardingAdapter: ChannelOnboardingAdapter = {
   configure: async ({
     cfg,
     prompter,
+    options,
     accountOverrides,
     shouldPromptAccountIds,
     forceAllowFrom,
   }) => {
+    // Simplified quickstart: just get the bot token and enable the channel.
+    // Skips account selection, allowFrom, and DM policy prompts.
+    if (options?.quickstartDefaults) {
+      const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+      let token: string;
+      if (envToken) {
+        await prompter.note("Using TELEGRAM_BOT_TOKEN from environment.", "Telegram");
+        token = envToken;
+      } else {
+        await noteTelegramTokenHelp(prompter);
+        token = String(
+          await prompter.text({
+            message: "Paste your Telegram bot token",
+            validate: (value) => (value?.trim() ? undefined : "Required"),
+          }),
+        ).trim();
+      }
+      return {
+        cfg: {
+          ...cfg,
+          channels: {
+            ...cfg.channels,
+            telegram: {
+              ...cfg.channels?.telegram,
+              enabled: true,
+              botToken: token,
+              dmPolicy: "open" as DmPolicy,
+            },
+          },
+        },
+        accountId: DEFAULT_ACCOUNT_ID,
+      };
+    }
+
     const telegramOverride = accountOverrides.telegram?.trim();
     const defaultTelegramAccountId = resolveDefaultTelegramAccountId(cfg);
     let telegramAccountId = telegramOverride

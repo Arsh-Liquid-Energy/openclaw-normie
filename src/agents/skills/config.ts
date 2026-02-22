@@ -1,3 +1,4 @@
+import { STARTER_SKILL_KEY_SET } from "../../commands/onboard-default-skills.js";
 import type { OpenClawConfig, SkillConfig } from "../../config/config.js";
 import {
   evaluateRuntimeRequires,
@@ -79,10 +80,13 @@ export function shouldIncludeSkill(params: {
   const osList = entry.metadata?.os ?? [];
   const remotePlatforms = eligibility?.remote?.platforms ?? [];
 
+  const isStarter = config?.skills?.starterSet === true && STARTER_SKILL_KEY_SET.has(skillKey);
+
   if (skillConfig?.enabled === false) {
     return false;
   }
-  if (!isBundledSkillAllowed(entry, allowBundled)) {
+  // When starterSet is active, starter skills bypass the bundled allowlist.
+  if (!isStarter && !isBundledSkillAllowed(entry, allowBundled)) {
     return false;
   }
   if (
